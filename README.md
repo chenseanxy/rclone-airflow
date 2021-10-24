@@ -12,9 +12,12 @@ Rclone + Airflow for scheduled, easily configurable backups & syncs
 - Docker-compose:
   - Regarding compose files:
     - Use prebuilt image with `docker-compose.yml`, or
-    - Use locally built image with `docker-compose.local.yml` and add your own DAGs & plugins
+    - Use locally built image with `docker-compose.local.yml` and add your own DAGs & plugins, build with `AIRFLOW_UID=$UID docker-compose -f docker-compose.local.yml build`
   - Add your data volumes in x-rclone-conf.volumes, preferablly using :rw flag if you're just using this for backups
-- Start the service stack using `docker-compose up -d`
+  - Change TZ to your local timezone, use [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) format
+- Start the service stack
+  - Prebuilt image: `AIRFLOW_UID=$UID docker-compose up -d`
+  - Local image: `AIRFLOW_UID=$UID docker-compose -f docker-compose.local.yml up -d`
 
 
 ## Configuration
@@ -37,6 +40,9 @@ isos:                   # Job name
 ```
 
 Each job will have one DAG (workflow) generated, you'll have to manually enable each one in Airflow UI
+- Or you could set `AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION` to `false` in compose, to automatically enable these dags upon creation
+
+Each config job will only have one instance running at a time, later instances will queue after running instances.
 
 ## Monitoring
 

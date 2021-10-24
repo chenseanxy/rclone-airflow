@@ -46,9 +46,10 @@ x-rclone-conf:
   image: rclone/rclone:1.56.2
   environment:
     &rclone-env
-    RCLONERC_ENDPOINT: rclone:5572  # For use within airflow
+    RCLONERC_ENDPOINT: http://rclone:5572  # For use within airflow
     RCLONERC_USERNAME: rclone
     RCLONERC_PASSWORD: rclone
+    TZ: Etc/UTC
   volumes:
     - ./conf/rclone:/config/rclone
     # Your data mounts here
@@ -70,7 +71,7 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     <<: *rclone-env
@@ -286,19 +287,28 @@ services:
         condition: service_completed_successfully
   
   rclone:
+    # healthcheck:  # auth issues
+    #   test: 
+    #     - CMD
+    #     - wget
+    #     - --no-verbose 
+    #     - --tries=1 
+    #     - --spider
+    #     - "http://$${RCLONERC_USERNAME}:$${RCLONERC_PASSWORD}@localhost:5572/metrics"
+    #   interval: 10s
+    #   timeout: 2s
+    #   retries: 5
+    restart: always
     ports:
       - 5572:5572
-    command:
-      - rcd
-      - --rc-addr
-      - 0.0.0.0:5572
-      - --rc-user
-      - $${RCLONERC_USERNAME}
-      - --rc-pass
-      - $${RCLONERC_USERNAME}
-      - --rc-enable-metrics   # enable prometheus endpoints
-      - --rc-web-gui
-      - --rc-web-gui-no-open-browser
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        rclone rcd --rc-addr 0.0.0.0:5572 \
+          --rc-user $${RCLONERC_USERNAME} \
+          --rc-pass $${RCLONERC_PASSWORD} \
+          --rc-enable-metrics  # enable prometheus endpoints
     <<: *rclone-conf
 volumes:
   postgres-db-volume:
