@@ -1,0 +1,8 @@
+
+# Keep folder structure
+conf/rclone/*
+!conf/rclone/.gitkeep
+logs/*
+!logs/.gitkeep
+plugins/*
+!plugins/.gitkeep
